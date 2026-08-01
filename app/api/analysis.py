@@ -1,7 +1,7 @@
 """
 SkinSense AI - Lesion Analysis API Endpoints.
 
-Provides endpoints for uploading skin lesion images and retrieving analysis session statuses.
+Provides endpoints for uploading skin lesion images, executing validations, and persisting storage.
 """
 
 import uuid
@@ -14,6 +14,7 @@ from app.models.user import User
 from app.auth.dependencies import RoleChecker
 from app.schemas.analysis import AnalysisUploadResponse
 from app.utils.file_validator import validate_image_file
+from app.utils.file_storage import save_uploaded_image
 
 router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
@@ -28,7 +29,7 @@ patient_only = RoleChecker(allowed_roles=["PATIENT"])
     summary="Upload skin lesion image for AI analysis",
     description=(
         "Accepts a skin lesion image file (multipart/form-data) from authenticated "
-        "Patient users, validates file format/size boundaries, and initializes a new AI analysis session."
+        "Patient users, validates format/size, saves the file to disk, and initializes an analysis session."
     )
 )
 async def upload_lesion_image(
@@ -38,19 +39,24 @@ async def upload_lesion_image(
     session: AsyncSession = Depends(get_db)
 ):
     """
-    Validates uploaded skin lesion image format, extension, MIME type, and size (max 10MB).
-    If validation passes, returns initial placeholder analysis response.
+    Complete upload pipeline:
+    1. Validate image format, size (<10MB), and content.
+    2. Save image asynchronously to uploads/patients/{patient_id}/{uuid}.{ext}.
+    3. Return analysis upload confirmation response.
     """
-    # Execute file validation rules
+    # 1. Validate file payload
     await validate_image_file(file)
 
-    # Generate placeholder analysis UUID for skeleton response
-    placeholder_analysis_id = uuid.uuid4()
-    
+    # 2. Store file asynchronously on disk
+    storage_result = await save_uploaded_image(file, patient_id=str(current_user.id))
+
+    # Generate analysis ID for session reference
+    analysis_id = uuid.uuid4()
+
     return AnalysisUploadResponse(
-        analysis_id=placeholder_analysis_id,
+        analysis_id=analysis_id,
         status="PENDING",
-        message="Lesion image validated and uploaded successfully. Analysis session initialized.",
-        image_url=f"/uploads/{placeholder_analysis_id}_{file.filename}",
+        message="Image uploaded successfully",
+        image_url=storage_result["relative_path"],
         created_at=datetime.now(timezone.utc)
     )
