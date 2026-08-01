@@ -1,7 +1,7 @@
 """
 SkinSense AI - Core Configuration Module.
 
-Manages application settings, environment variables, and database connection settings.
+Manages application settings, environment variables, security tokens, and database parameters.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     PORT: int = 8000
     HOST: str = "0.0.0.0"
+
+    # Security & JWT Configuration
+    SECRET_KEY: str = "skinsense-super-secret-key-change-in-production-32bytes"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # Database Configuration Parameters
     DATABASE_HOST: str = "localhost"

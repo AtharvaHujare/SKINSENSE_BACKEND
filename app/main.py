@@ -1,13 +1,14 @@
 """
 SkinSense AI - Main Application Entry Point.
 
-Initializes the FastAPI application, startup connection verification, and mounts routers.
+Initializes the FastAPI application, mounts auth and health routers, and handles startup events.
 """
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.config import settings
 from app.api.health import router as health_router
+from app.auth.routes import router as auth_router
 from app.database.database import verify_database_connection
 
 
@@ -17,10 +18,8 @@ async def lifespan(app: FastAPI):
     Application lifespan context manager handling startup and shutdown events.
     Verifies database connectivity upon server startup.
     """
-    # Startup logic: verify database connectivity
     await verify_database_connection()
     yield
-    # Shutdown logic (if any cleanup is required)
 
 
 # Initialize FastAPI application instance
@@ -42,3 +41,4 @@ async def root():
 
 # Register API Routers
 app.include_router(health_router)
+app.include_router(auth_router)
