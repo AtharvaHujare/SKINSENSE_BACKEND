@@ -1,11 +1,10 @@
 """
 SkinSense AI - Lesion Analysis API Endpoints.
 
-Provides endpoints for uploading skin lesion images, executing validations, and persisting storage.
+Provides endpoints for uploading skin lesion images, executing validations, persisting storage,
+and creating Analysis database records.
 """
 
-import uuid
-from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,8 +12,7 @@ from app.database.session import get_db
 from app.models.user import User
 from app.auth.dependencies import RoleChecker
 from app.schemas.analysis import AnalysisUploadResponse
-from app.utils.file_validator import validate_image_file
-from app.utils.file_storage import save_uploaded_image
+from app.services.analysis_service import analysis_service
 
 router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
@@ -29,7 +27,8 @@ patient_only = RoleChecker(allowed_roles=["PATIENT"])
     summary="Upload skin lesion image for AI analysis",
     description=(
         "Accepts a skin lesion image file (multipart/form-data) from authenticated "
-        "Patient users, validates format/size, saves the file to disk, and initializes an analysis session."
+        "Patient users, validates file parameters, saves image to storage, and persists "
+        "an Analysis session record in PostgreSQL."
     )
 )
 async def upload_lesion_image(
@@ -39,24 +38,11 @@ async def upload_lesion_image(
     session: AsyncSession = Depends(get_db)
 ):
     """
-    Complete upload pipeline:
-    1. Validate image format, size (<10MB), and content.
-    2. Save image asynchronously to uploads/patients/{patient_id}/{uuid}.{ext}.
-    3. Return analysis upload confirmation response.
+    Delegates to AnalysisService for complete upload validation, storage, and DB persistence pipeline.
     """
-    # 1. Validate file payload
-    await validate_image_file(file)
-
-    # 2. Store file asynchronously on disk
-    storage_result = await save_uploaded_image(file, patient_id=str(current_user.id))
-
-    # Generate analysis ID for session reference
-    analysis_id = uuid.uuid4()
-
-    return AnalysisUploadResponse(
-        analysis_id=analysis_id,
-        status="PENDING",
-        message="Image uploaded successfully",
-        image_url=storage_result["relative_path"],
-        created_at=datetime.now(timezone.utc)
+    return await analysis_service.process_lesion_upload(
+        session=session,
+        current_user=current_user,
+        file=file,
+        lesion_body_location=lesion_body_location
     )
