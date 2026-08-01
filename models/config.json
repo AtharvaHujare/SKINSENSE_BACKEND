@@ -1,0 +1,5 @@
+{
+    "image_size": 224,
+    "channels": 3,
+    "normalize": true
+}
