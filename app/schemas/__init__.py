@@ -10,6 +10,7 @@ from app.schemas.auth import (
     UserResponse,
     MessageResponse,
 )
+from app.schemas.analysis import AnalysisUploadResponse
 
 __all__ = [
     "UserRegisterRequest",
@@ -18,4 +19,5 @@ __all__ = [
     "RefreshTokenRequest",
     "UserResponse",
     "MessageResponse",
+    "AnalysisUploadResponse",
 ]

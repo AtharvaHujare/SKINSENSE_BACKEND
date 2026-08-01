@@ -1,13 +1,14 @@
 """
 SkinSense AI - Main Application Entry Point.
 
-Initializes the FastAPI application, mounts auth and health routers, and handles startup events.
+Initializes the FastAPI application, mounts API routers (auth, health, analysis), and handles startup events.
 """
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.config import settings
 from app.api.health import router as health_router
+from app.api.analysis import router as analysis_router
 from app.auth.routes import router as auth_router
 from app.database.database import verify_database_connection
 
@@ -42,3 +43,4 @@ async def root():
 # Register API Routers
 app.include_router(health_router)
 app.include_router(auth_router)
+app.include_router(analysis_router)
