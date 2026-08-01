@@ -11,8 +11,8 @@ from app.database.database import AsyncSessionLocal
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
-    Dependency generator yielding an AsyncSession instance per request.
-    Ensures sessions are cleanly closed upon completion or failure.
+    FastAPI dependency generator yielding an AsyncSession per HTTP request scope.
+    Guarantees clean transaction rollback on error and proper session cleanup.
     """
     async with AsyncSessionLocal() as session:
         try:
