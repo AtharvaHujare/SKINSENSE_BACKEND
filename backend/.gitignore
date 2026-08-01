@@ -1,0 +1,37 @@
+# Python Bytecode and Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environment files
+.env
+.env.local
+.venv
+env/
+venv/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+
+# Testing and Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local Storage & Dynamic Artifacts
+uploads/*
+!uploads/.gitkeep
+!uploads/README.md
+
+reports/*
+!reports/.gitkeep
+!reports/README.md
+
+trained_models/*
+!trained_models/.gitkeep
+!trained_models/README.md

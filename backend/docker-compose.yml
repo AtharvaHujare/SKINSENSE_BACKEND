@@ -1,0 +1,56 @@
+# ====================================================================
+# SkinSense AI Backend Service Orchestration Template
+# ====================================================================
+# This docker-compose.yml defines multi-container development/production
+# setups including API servers, database containers, and cache instances.
+# ====================================================================
+
+version: '3.8'
+
+services:
+  # ------------------------------------------------------------------
+  # FastAPI Application Backend Service
+  # ------------------------------------------------------------------
+  # backend:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: skinsense_backend
+  #   ports:
+  #     - "8000:8000"
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - .:/app
+  #     - ./uploads:/app/uploads
+  #     - ./reports:/app/reports
+  #   depends_on:
+  #     - db
+
+  # ------------------------------------------------------------------
+  # Database Service Placeholder (PostgreSQL)
+  # ------------------------------------------------------------------
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: skinsense_db
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: skinsense_user
+  #     POSTGRES_PASSWORD: skinsense_password
+  #     POSTGRES_DB: skinsense
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+  # ------------------------------------------------------------------
+  # Cache & Task Queue Broker Placeholder (Redis)
+  # ------------------------------------------------------------------
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: skinsense_redis
+  #   ports:
+  #     - "6379:6379"
+
+# volumes:
+#   postgres_data:
