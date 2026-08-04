@@ -12,9 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.models.doctor import Doctor
+from app.models.patient import Patient
 from app.schemas.review import DoctorReviewRequest, DoctorReviewResponse
 from app.repositories.analysis_repository import analysis_repository
 from app.repositories.report_repository import report_repository
+from app.services.prediction_service import prediction_service
+from app.utils.pdf_generator import generate_analysis_report
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +39,12 @@ class ReportService:
         1. Verifies DOCTOR role permissions.
         2. Resolves associated Doctor profile entity ID.
         3. Loads target Analysis session (raises 404 if missing).
-        4. Validates Analysis status is COMPLETED.
+        4. Validates Analysis status is COMPLETED or REVIEWED.
         5. Assigns reviewing doctor and updates Analysis status to REVIEWED.
         6. Persists diagnosis, notes, and recommendation in Report repository.
-        7. Returns DoctorReviewResponse payload.
+        7. Automatically generates PDF report document via pdf_generator utility.
+        8. Updates report metadata with generated pdf_path.
+        9. Returns DoctorReviewResponse payload including pdf_path.
         """
         # 1. Verify DOCTOR role
         if current_user.role != "DOCTOR":
@@ -48,7 +53,7 @@ class ReportService:
                 detail="User role 'PATIENT' is not authorized to submit doctor reviews."
             )
 
-        # 2. Resolve Doctor profile ID
+        # 2. Resolve Doctor profile entity
         statement = select(Doctor).where(Doctor.user_id == current_user.id)
         result = await session.execute(statement)
         doctor_profile = result.scalar_one_or_none()
@@ -69,6 +74,14 @@ class ReportService:
                 detail=f"Cannot review analysis session. Analysis status must be 'COMPLETED'. Current status is '{analysis.status}'."
             )
 
+        # Resolve Patient profile entity for PDF rendering
+        patient_stmt = select(Patient).where(Patient.id == analysis.patient_id)
+        patient_res = await session.execute(patient_stmt)
+        patient_profile = patient_res.scalar_one_or_none()
+
+        # Resolve Prediction record for PDF rendering
+        prediction_record = await prediction_service.get_prediction_by_analysis_id(session, analysis_id)
+
         # 5. Update Analysis record status to REVIEWED and set assigned doctor
         await analysis_repository.update_analysis_status(
             session=session,
@@ -86,20 +99,38 @@ class ReportService:
             recommendation=request.recommendation
         )
 
-        logger.info(
-            "Doctor [ID: %s] successfully reviewed Analysis [ID: %s]",
-            doctor_id,
-            analysis_id
+        # 7. Automatically generate PDF diagnostic report using ReportLab
+        pdf_path = generate_analysis_report(
+            analysis=analysis,
+            prediction=prediction_record,
+            doctor_review=request,
+            patient=patient_profile,
+            doctor=doctor_profile
         )
 
-        # 7. Return DoctorReviewResponse contract
+        # 8. Save PDF metadata URL in Report table
+        await report_repository.save_report_metadata(
+            session=session,
+            analysis_id=analysis_id,
+            pdf_path=pdf_path
+        )
+
+        logger.info(
+            "Doctor [ID: %s] successfully reviewed Analysis [ID: %s] and generated PDF report at '%s'",
+            doctor_id,
+            analysis_id,
+            pdf_path
+        )
+
+        # 9. Return DoctorReviewResponse contract with pdf_path
         return DoctorReviewResponse(
             analysis_id=analysis_id,
             doctor_id=doctor_id,
             diagnosis=request.diagnosis,
             notes=request.notes,
             recommendation=request.recommendation,
-            reviewed_at=report_record.updated_at
+            reviewed_at=report_record.updated_at,
+            pdf_path=pdf_path
         )
 
 

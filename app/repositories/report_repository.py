@@ -71,6 +71,38 @@ class ReportRepository:
             logger.info("Created new Report [ID: %s] with doctor review for Analysis [ID: %s]", new_report.id, analysis_id)
             return new_report
 
+    async def save_report_metadata(
+        self,
+        session: AsyncSession,
+        analysis_id: uuid.UUID,
+        pdf_path: str
+    ) -> Report:
+        """
+        Saves or updates the pdf_url for a given Report entity in PostgreSQL.
+        """
+        report = await self.get_report_by_analysis_id(session, analysis_id)
+        if report:
+            report.pdf_url = pdf_path
+            session.add(report)
+            await session.commit()
+            await session.refresh(report)
+            logger.info("Updated Report [ID: %s] pdf_url to '%s'", report.id, pdf_path)
+            return report
+        else:
+            new_report = Report(
+                id=uuid.uuid4(),
+                analysis_id=analysis_id,
+                pdf_url=pdf_path,
+                doctor_notes="",
+                severity_level="LOW",
+                download_token=secrets.token_urlsafe(32)
+            )
+            session.add(new_report)
+            await session.commit()
+            await session.refresh(new_report)
+            logger.info("Created new Report [ID: %s] with pdf_url '%s'", new_report.id, pdf_path)
+            return new_report
+
 
 # Singleton repository export
 report_repository = ReportRepository()

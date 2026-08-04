@@ -37,6 +37,7 @@ class DoctorReviewResponse(BaseModel):
     notes: str = Field(..., description="Clinical observation notes")
     recommendation: str = Field(..., description="Recommended medical treatment or follow-up actions")
     reviewed_at: datetime = Field(..., description="Timestamp of physician review completion")
+    pdf_path: str = Field(..., description="Absolute storage filepath of the generated PDF medical report")
 
     class Config:
         from_attributes = True
