@@ -64,7 +64,7 @@ class AnalysisService:
         saved_abs_path = storage_result["absolute_path"]
         relative_path = storage_result["relative_path"]
 
-        # 4. Persist Analysis database record with rollback cleanup
+        # 4. Persist Analysis database record with initial status "PENDING"
         try:
             analysis_record = await analysis_repository.create_analysis(
                 session=session,
@@ -73,6 +73,7 @@ class AnalysisService:
                 lesion_body_location=lesion_body_location,
                 status="PENDING"
             )
+            logger.info("Analysis [ID: %s] created with status 'PENDING'", analysis_record.id)
         except Exception as exc:
             # Delete stored image file to prevent orphaned disk files if database insert fails
             if os.path.exists(saved_abs_path):
@@ -88,6 +89,14 @@ class AnalysisService:
                 detail="Failed to persist analysis record in database."
             )
 
+        # Transition status to PROCESSING before AI inference
+        await analysis_repository.update_analysis_status(
+            session=session,
+            analysis_id=analysis_record.id,
+            status="PROCESSING"
+        )
+        logger.info("Analysis [ID: %s] status updated to 'PROCESSING'", analysis_record.id)
+
         # 5. Execute AI Model Prediction Inference
         try:
             prediction = predict(saved_abs_path)
@@ -98,6 +107,7 @@ class AnalysisService:
                 analysis_id=analysis_record.id,
                 status="FAILED"
             )
+            logger.error("Analysis [ID: %s] status updated to 'FAILED'", analysis_record.id)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="AI prediction inference failed."
@@ -114,14 +124,34 @@ class AnalysisService:
                 heatmap_path=prediction["heatmap_path"]
             )
         except HTTPException:
+            await analysis_repository.update_analysis_status(
+                session=session,
+                analysis_id=analysis_record.id,
+                status="FAILED"
+            )
+            logger.error("Analysis [ID: %s] status updated to 'FAILED'", analysis_record.id)
             raise
         except Exception as exc:
             await session.rollback()
             logger.error("Failed to save prediction record for Analysis [ID: %s]: %s", analysis_record.id, exc)
+            await analysis_repository.update_analysis_status(
+                session=session,
+                analysis_id=analysis_record.id,
+                status="FAILED"
+            )
+            logger.error("Analysis [ID: %s] status updated to 'FAILED'", analysis_record.id)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to save prediction record in database."
             )
+
+        # 7. Transition status to COMPLETED upon successful workflow completion
+        await analysis_repository.update_analysis_status(
+            session=session,
+            analysis_id=analysis_record.id,
+            status="COMPLETED"
+        )
+        logger.info("Analysis [ID: %s] status updated to 'COMPLETED'", analysis_record.id)
 
         return {
             "analysis_id": analysis_record.id,
