@@ -5,17 +5,11 @@ Initializes the FastAPI application, mounts API routers (auth, health, analysis)
 """
 
 from contextlib import asynccontextmanager
-from pathlib import Path
-
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-
 from app.config import settings
 from app.api.health import router as health_router
-from app.api.predict import router as predict_router
 from app.api.analysis import router as analysis_router
 from app.auth.routes import router as auth_router
-from app.reports.pdf_report import generate_skin_report
 from app.database.database import verify_database_connection
 
 
@@ -37,16 +31,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Serve Grad-CAM images
-BASE_DIR = Path(__file__).resolve().parent
-OUTPUT_DIR = BASE_DIR / "ai" / "outputs"
-
-app.mount(
-    "/outputs",
-    StaticFiles(directory=OUTPUT_DIR),
-    name="outputs",
-)
-
 
 @app.get("/", summary="Root status check")
 async def root():
@@ -58,6 +42,5 @@ async def root():
 
 # Register API Routers
 app.include_router(health_router)
-app.include_router(predict_router)
 app.include_router(auth_router)
 app.include_router(analysis_router)
