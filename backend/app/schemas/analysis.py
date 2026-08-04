@@ -12,13 +12,13 @@ from pydantic import BaseModel, Field
 
 class AnalysisUploadResponse(BaseModel):
     """
-    Response schema returned upon successful lesion upload and analysis initialization.
+    Response schema returned upon successful lesion upload and AI inference prediction.
     """
     analysis_id: uuid.UUID = Field(..., description="Unique identifier for the analysis session")
-    status: str = Field(default="PENDING", description="Analysis processing state (PENDING, PROCESSING, COMPLETED, FAILED)")
-    message: str = Field(..., description="Status summary message")
-    image_url: Optional[str] = Field(default=None, description="Uploaded image file access path")
-    created_at: datetime = Field(..., description="Submission timestamp")
+    prediction: str = Field(..., description="Predicted skin condition label")
+    confidence: float = Field(..., description="Confidence score percentage")
+    risk_level: str = Field(..., description="Assessed risk level (High or Low)")
+    heatmap_path: str = Field(..., description="Path to generated Grad-CAM heatmap visualization")
 
     class Config:
         from_attributes = True

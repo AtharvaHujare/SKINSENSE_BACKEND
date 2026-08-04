@@ -16,6 +16,7 @@ from app.models.user import User
 from app.models.patient import Patient
 from app.schemas.analysis import AnalysisUploadResponse
 from app.repositories.analysis_repository import analysis_repository
+from app.ai.predict import predict
 from app.utils.file_validator import validate_image_file
 from app.utils.file_storage import save_uploaded_image
 
@@ -33,14 +34,15 @@ class AnalysisService:
         current_user: User,
         file: UploadFile,
         lesion_body_location: str
-    ) -> AnalysisUploadResponse:
+    ) -> dict:
         """
-        Executes complete upload workflow:
+        Executes complete upload and analysis workflow:
         1. Validate uploaded image (MIME, size, extension, non-empty).
         2. Resolve associated Patient profile ID.
         3. Save file asynchronously to disk.
         4. Persist Analysis record in database.
-        5. Clean up stored file if database transaction fails.
+        5. Run AI model prediction inference.
+        6. Clean up stored file/status on transaction or inference failure.
         """
         # 1. Validate image payload
         await validate_image_file(file)
@@ -84,13 +86,28 @@ class AnalysisService:
                 detail="Failed to persist analysis record in database."
             )
 
-        return AnalysisUploadResponse(
-            analysis_id=analysis_record.id,
-            status=analysis_record.status,
-            message="Analysis created successfully.",
-            image_url=analysis_record.image_url,
-            created_at=analysis_record.created_at
-        )
+        # 5. Execute AI Model Prediction Inference
+        try:
+            prediction = predict(saved_abs_path)
+        except Exception as exc:
+            logger.error("AI prediction inference failed for Analysis record [ID: %s]: %s", analysis_record.id, exc)
+            await analysis_repository.update_analysis_status(
+                session=session,
+                analysis_id=analysis_record.id,
+                status="FAILED"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="AI prediction inference failed."
+            )
+
+        return {
+            "analysis_id": analysis_record.id,
+            "prediction": prediction["prediction"],
+            "confidence": prediction["confidence"],
+            "risk_level": prediction["risk_level"],
+            "heatmap_path": prediction["heatmap_path"]
+        }
 
 
 # Singleton service export
