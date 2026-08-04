@@ -16,6 +16,7 @@ from app.models.user import User
 from app.models.patient import Patient
 from app.schemas.analysis import AnalysisUploadResponse
 from app.repositories.analysis_repository import analysis_repository
+from app.services.prediction_service import prediction_service
 from app.ai.predict import predict
 from app.utils.file_validator import validate_image_file
 from app.utils.file_storage import save_uploaded_image
@@ -42,7 +43,8 @@ class AnalysisService:
         3. Save file asynchronously to disk.
         4. Persist Analysis record in database.
         5. Run AI model prediction inference.
-        6. Clean up stored file/status on transaction or inference failure.
+        6. Persist Prediction record in database.
+        7. Clean up stored file/status on failure.
         """
         # 1. Validate image payload
         await validate_image_file(file)
@@ -99,6 +101,26 @@ class AnalysisService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="AI prediction inference failed."
+            )
+
+        # 6. Save Prediction into Database using PredictionService
+        try:
+            await prediction_service.create_prediction(
+                session=session,
+                analysis_id=analysis_record.id,
+                predicted_class=prediction["prediction"],
+                confidence=prediction["confidence"],
+                risk_level=prediction["risk_level"],
+                heatmap_path=prediction["heatmap_path"]
+            )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            await session.rollback()
+            logger.error("Failed to save prediction record for Analysis [ID: %s]: %s", analysis_record.id, exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save prediction record in database."
             )
 
         return {
