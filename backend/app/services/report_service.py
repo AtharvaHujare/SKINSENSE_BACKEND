@@ -133,6 +133,65 @@ class ReportService:
             pdf_path=pdf_path
         )
 
+    async def download_report(
+        self,
+        session: AsyncSession,
+        current_user: User,
+        analysis_id: uuid.UUID
+    ) -> str:
+        """
+        Validates authorization, loads report metadata, verifies disk existence,
+        and returns absolute PDF path for FileResponse download.
+        """
+        import os
+
+        # 1. Load target Analysis session
+        analysis = await analysis_repository.get_analysis_by_id(session, analysis_id)
+        if not analysis:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Analysis session not found."
+            )
+
+        # 2. Enforce Patient authorization check
+        if current_user.role == "PATIENT":
+            statement = select(Patient).where(Patient.user_id == current_user.id)
+            result = await session.execute(statement)
+            patient_profile = result.scalar_one_or_none()
+            patient_id = patient_profile.id if patient_profile else current_user.id
+
+            if analysis.patient_id != patient_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied. You do not have permission to download this report."
+                )
+
+        # 3. Load Report record metadata
+        report = await report_repository.get_report_by_analysis_id(session, analysis_id)
+        if not report or not report.pdf_url:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Report metadata not found for this analysis session."
+            )
+
+        # 4. Verify PDF file exists on disk
+        pdf_path = os.path.abspath(report.pdf_url)
+        if not os.path.exists(pdf_path):
+            logger.error("Report PDF file missing from disk at '%s' for Analysis [ID: %s]", pdf_path, analysis_id)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="PDF report file not found on disk."
+            )
+
+        logger.info(
+            "User [ID: %s, Role: %s] authorized to download PDF report at '%s' for Analysis [ID: %s]",
+            current_user.id,
+            current_user.role,
+            pdf_path,
+            analysis_id
+        )
+        return pdf_path
+
 
 # Singleton service export
 report_service = ReportService()
