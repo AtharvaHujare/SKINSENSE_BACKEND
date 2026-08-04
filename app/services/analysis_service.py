@@ -161,6 +161,172 @@ class AnalysisService:
             "heatmap_path": prediction["heatmap_path"]
         }
 
+    async def get_analysis(
+        self,
+        session: AsyncSession,
+        current_user: User,
+        analysis_id: uuid.UUID
+    ) -> dict:
+        """
+        Retrieves analysis session details including prediction results if available.
+        Performs authorization check ensuring patients can only view their own analyses.
+        """
+        analysis = await analysis_repository.get_analysis_with_prediction(session, analysis_id)
+        if not analysis:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Analysis session not found."
+            )
+
+        # Patient authorization check
+        if current_user.role == "PATIENT":
+            statement = select(Patient).where(Patient.user_id == current_user.id)
+            result = await session.execute(statement)
+            patient_profile = result.scalar_one_or_none()
+            patient_id = patient_profile.id if patient_profile else current_user.id
+
+            if analysis.patient_id != patient_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied. You do not have permission to view this analysis."
+                )
+
+        prediction_data = None
+        if analysis.predictions:
+            latest_pred = analysis.predictions[-1]
+            conf_val = float(latest_pred.confidence_score)
+            if conf_val <= 1.0:
+                conf_val = round(conf_val * 100.0, 2)
+            
+            risk_val = "Low"
+            if latest_pred.class_probabilities and isinstance(latest_pred.class_probabilities, dict):
+                risk_val = latest_pred.class_probabilities.get("risk_level", "Low")
+
+            prediction_data = {
+                "predicted_class": latest_pred.predicted_class,
+                "confidence": conf_val,
+                "risk_level": risk_val,
+                "heatmap_path": latest_pred.heatmap_url
+            }
+
+        return {
+            "analysis_id": analysis.id,
+            "patient_id": analysis.patient_id,
+            "image_url": analysis.image_url,
+            "lesion_body_location": analysis.lesion_body_location,
+            "status": analysis.status,
+            "created_at": analysis.created_at,
+            "updated_at": analysis.updated_at,
+            "prediction": prediction_data
+        }
+
+    async def get_prediction(
+        self,
+        session: AsyncSession,
+        current_user: User,
+        analysis_id: uuid.UUID
+    ) -> dict:
+        """
+        Retrieves prediction results for a given analysis session.
+        Performs authorization check ensuring patients can only view their own analyses.
+        """
+        analysis = await analysis_repository.get_analysis_with_prediction(session, analysis_id)
+        if not analysis:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Analysis session not found."
+            )
+
+        # Patient authorization check
+        if current_user.role == "PATIENT":
+            statement = select(Patient).where(Patient.user_id == current_user.id)
+            result = await session.execute(statement)
+            patient_profile = result.scalar_one_or_none()
+            patient_id = patient_profile.id if patient_profile else current_user.id
+
+            if analysis.patient_id != patient_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied. You do not have permission to view this analysis."
+                )
+
+        if not analysis.predictions:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Prediction results not found for this analysis session."
+            )
+
+        latest_pred = analysis.predictions[-1]
+        conf_val = float(latest_pred.confidence_score)
+        if conf_val <= 1.0:
+            conf_val = round(conf_val * 100.0, 2)
+
+        risk_val = "Low"
+        if latest_pred.class_probabilities and isinstance(latest_pred.class_probabilities, dict):
+            risk_val = latest_pred.class_probabilities.get("risk_level", "Low")
+
+        return {
+            "predicted_class": latest_pred.predicted_class,
+            "confidence": conf_val,
+            "risk_level": risk_val,
+            "heatmap_path": latest_pred.heatmap_url
+        }
+
+    async def get_history(
+        self,
+        session: AsyncSession,
+        current_user: User,
+        skip: int = 0,
+        limit: int = 100
+    ) -> list:
+        """
+        Retrieves historical analysis sessions for the authenticated patient user ordered newest first.
+        """
+        statement = select(Patient).where(Patient.user_id == current_user.id)
+        result = await session.execute(statement)
+        patient_profile = result.scalar_one_or_none()
+        patient_id = patient_profile.id if patient_profile else current_user.id
+
+        analyses = await analysis_repository.get_patient_history(
+            session=session,
+            patient_id=patient_id,
+            skip=skip,
+            limit=limit
+        )
+
+        history_items = []
+        for analysis in analyses:
+            prediction_data = None
+            if analysis.predictions:
+                latest_pred = analysis.predictions[-1]
+                conf_val = float(latest_pred.confidence_score)
+                if conf_val <= 1.0:
+                    conf_val = round(conf_val * 100.0, 2)
+
+                risk_val = "Low"
+                if latest_pred.class_probabilities and isinstance(latest_pred.class_probabilities, dict):
+                    risk_val = latest_pred.class_probabilities.get("risk_level", "Low")
+
+                prediction_data = {
+                    "predicted_class": latest_pred.predicted_class,
+                    "confidence": conf_val,
+                    "risk_level": risk_val,
+                    "heatmap_path": latest_pred.heatmap_url
+                }
+
+            history_items.append({
+                "analysis_id": analysis.id,
+                "patient_id": analysis.patient_id,
+                "image_url": analysis.image_url,
+                "lesion_body_location": analysis.lesion_body_location,
+                "status": analysis.status,
+                "created_at": analysis.created_at,
+                "updated_at": analysis.updated_at,
+                "prediction": prediction_data
+            })
+
+        return history_items
+
 
 # Singleton service export
 analysis_service = AnalysisService()

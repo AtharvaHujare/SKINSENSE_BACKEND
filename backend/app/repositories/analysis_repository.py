@@ -6,8 +6,9 @@ Handles database queries and persistence operations for Analysis entities.
 
 import uuid
 import logging
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy import select, update
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.analysis import Analysis
@@ -57,6 +58,43 @@ class AnalysisRepository:
         statement = select(Analysis).where(Analysis.id == analysis_id)
         result = await session.execute(statement)
         return result.scalar_one_or_none()
+
+    async def get_analysis_with_prediction(
+        self,
+        session: AsyncSession,
+        analysis_id: uuid.UUID
+    ) -> Optional[Analysis]:
+        """
+        Fetches an Analysis entity eagerly loading associated predictions.
+        """
+        statement = (
+            select(Analysis)
+            .options(selectinload(Analysis.predictions))
+            .where(Analysis.id == analysis_id)
+        )
+        result = await session.execute(statement)
+        return result.scalar_one_or_none()
+
+    async def get_patient_history(
+        self,
+        session: AsyncSession,
+        patient_id: uuid.UUID,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Analysis]:
+        """
+        Fetches list of Analysis records for a given patient ordered by newest first.
+        """
+        statement = (
+            select(Analysis)
+            .options(selectinload(Analysis.predictions))
+            .where(Analysis.patient_id == patient_id)
+            .order_by(Analysis.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await session.execute(statement)
+        return list(result.scalars().all())
 
     async def update_analysis_status(
         self,
