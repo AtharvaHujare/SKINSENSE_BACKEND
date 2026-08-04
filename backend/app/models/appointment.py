@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Text, DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -26,14 +26,14 @@ class Appointment(Base, TimestampMixin):
     __tablename__ = "appointments"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         doc="Unique appointment identifier"
     )
 
     patient_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("patients.id", ondelete="CASCADE"),
         index=True,
         nullable=False,
@@ -41,7 +41,7 @@ class Appointment(Base, TimestampMixin):
     )
 
     doctor_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("doctors.id", ondelete="CASCADE"),
         index=True,
         nullable=False,
@@ -49,7 +49,7 @@ class Appointment(Base, TimestampMixin):
     )
 
     analysis_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("analyses.id", ondelete="SET NULL"),
         nullable=True,
         doc="Optional triggering lesion analysis session"

@@ -4,13 +4,19 @@ SkinSense AI - Core Configuration Module.
 Manages application settings, environment variables, security tokens, and database parameters.
 """
 
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+DB_DIR = BASE_DIR / "backend" / "database"
+DB_DIR.mkdir(parents=True, exist_ok=True)
+DEFAULT_DB_FILE = DB_DIR / "skinsense.db"
 
 
 class Settings(BaseSettings):
     """
     Application Settings schema loaded from environment variables (.env) or defaults.
-    Dynamically constructs database connection strings from individual environment parameters.
+    Uses SQLite database engine for local development.
     """
 
     # Core Application Settings
@@ -30,33 +36,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # Database Configuration Parameters
-    DATABASE_HOST: str = "localhost"
-    DATABASE_PORT: int = 5432
-    DATABASE_NAME: str = "skinsense_db"
-    DATABASE_USER: str = "postgres"
-    DATABASE_PASSWORD: str = "postgres"
-
-    # Database Connection Pool Settings
-    DB_POOL_SIZE: int = 10
-    DB_MAX_OVERFLOW: int = 20
-    DB_POOL_TIMEOUT: int = 30
+    # Database Configuration Parameters (SQLite Development Engine)
+    DATABASE_URL: str = f"sqlite+aiosqlite:///{DEFAULT_DB_FILE.as_posix()}"
 
     # Storage Settings
     UPLOADS_DIR: str = "uploads"
     REPORTS_DIR: str = "reports"
     TRAINED_MODELS_DIR: str = "trained_models"
-
-    @property
-    def DATABASE_URL(self) -> str:
-        """
-        Dynamically constructs asynchronous PostgreSQL DSN connection string.
-        Format: postgresql+asyncpg://USER:PASSWORD@HOST:PORT/DATABASE
-        """
-        return (
-            f"postgresql+asyncpg://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}"
-            f"@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
-        )
 
     model_config = SettingsConfigDict(
         env_file=".env",

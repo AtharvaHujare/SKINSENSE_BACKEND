@@ -7,7 +7,7 @@ Stores practitioner credentialing, medical license, and clinic affiliation detai
 import uuid
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Boolean, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -23,14 +23,14 @@ class Doctor(Base, TimestampMixin):
     __tablename__ = "doctors"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         doc="Unique practitioner identifier"
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         unique=True,
         index=True,

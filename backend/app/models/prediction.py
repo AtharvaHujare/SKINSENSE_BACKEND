@@ -7,7 +7,7 @@ Stores AI model outputs, class predictions, confidence probabilities, and Grad-C
 import uuid
 from typing import TYPE_CHECKING
 from sqlalchemy import String, Numeric, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Uuid, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -23,14 +23,14 @@ class Prediction(Base, TimestampMixin):
     __tablename__ = "predictions"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         doc="Unique prediction identifier"
     )
 
     analysis_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("analyses.id", ondelete="CASCADE"),
         index=True,
         nullable=False,
@@ -56,7 +56,7 @@ class Prediction(Base, TimestampMixin):
     )
 
     class_probabilities: Mapped[dict] = mapped_column(
-        JSONB,
+        JSON,
         nullable=False,
         doc="Complete probability distribution JSON"
     )

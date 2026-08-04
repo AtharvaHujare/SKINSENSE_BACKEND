@@ -103,15 +103,14 @@ class DoctorRepository:
         today_reviews = today_res.scalar() or 0
 
         # Count high risk cases
-        high_risk_cases = 0
         try:
             high_risk_stmt = select(func.count(Prediction.id)).where(
-                Prediction.class_probabilities["risk_level"].astext == "High"
+                Prediction.predicted_class.in_(["mel", "bcc", "akiec"])
             )
             high_risk_res = await session.execute(high_risk_stmt)
             high_risk_cases = high_risk_res.scalar() or 0
         except Exception as exc:
-            logger.warning("Could not execute JSONB risk query directly: %s", exc)
+            logger.warning("Could not execute high risk query: %s", exc)
             high_risk_cases = 0
 
         return {

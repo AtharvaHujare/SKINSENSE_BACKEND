@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Boolean, DateTime
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -25,7 +25,7 @@ class User(Base, TimestampMixin):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         doc="Unique user identifier"

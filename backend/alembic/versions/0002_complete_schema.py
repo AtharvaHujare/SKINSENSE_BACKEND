@@ -8,7 +8,6 @@ Create Date: 2026-08-01 00:05:00.000000
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '0002_complete_schema'
@@ -21,14 +20,14 @@ def upgrade() -> None:
     # 1. Create 'analyses' table
     op.create_table(
         'analyses',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, primary_key=True),
-        sa.Column('patient_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('assigned_doctor_id', postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column('id', sa.Uuid(), nullable=False, primary_key=True),
+        sa.Column('patient_id', sa.Uuid(), nullable=False),
+        sa.Column('assigned_doctor_id', sa.Uuid(), nullable=True),
         sa.Column('image_url', sa.String(length=512), nullable=False),
         sa.Column('lesion_body_location', sa.String(length=100), nullable=False),
         sa.Column('status', sa.String(length=32), nullable=False, server_default='PENDING'),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.ForeignKeyConstraint(['assigned_doctor_id'], ['doctors.id'], ondelete='SET NULL'),
         sa.ForeignKeyConstraint(['patient_id'], ['patients.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
@@ -40,15 +39,15 @@ def upgrade() -> None:
     # 2. Create 'predictions' table
     op.create_table(
         'predictions',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, primary_key=True),
-        sa.Column('analysis_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False, primary_key=True),
+        sa.Column('analysis_id', sa.Uuid(), nullable=False),
         sa.Column('model_version', sa.String(length=50), nullable=False),
         sa.Column('predicted_class', sa.String(length=100), nullable=False),
         sa.Column('confidence_score', sa.Numeric(precision=5, scale=4), nullable=False),
-        sa.Column('class_probabilities', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column('class_probabilities', sa.JSON(), nullable=False),
         sa.Column('heatmap_url', sa.String(length=512), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.ForeignKeyConstraint(['analysis_id'], ['analyses.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
@@ -57,14 +56,14 @@ def upgrade() -> None:
     # 3. Create 'reports' table
     op.create_table(
         'reports',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, primary_key=True),
-        sa.Column('analysis_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False, primary_key=True),
+        sa.Column('analysis_id', sa.Uuid(), nullable=False),
         sa.Column('pdf_url', sa.String(length=512), nullable=False),
         sa.Column('doctor_notes', sa.Text(), nullable=True),
         sa.Column('severity_level', sa.String(length=32), nullable=False, server_default='LOW'),
         sa.Column('download_token', sa.String(length=128), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.ForeignKeyConstraint(['analysis_id'], ['analyses.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
@@ -74,15 +73,15 @@ def upgrade() -> None:
     # 4. Create 'appointments' table
     op.create_table(
         'appointments',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, primary_key=True),
-        sa.Column('patient_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('doctor_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('analysis_id', postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column('id', sa.Uuid(), nullable=False, primary_key=True),
+        sa.Column('patient_id', sa.Uuid(), nullable=False),
+        sa.Column('doctor_id', sa.Uuid(), nullable=False),
+        sa.Column('analysis_id', sa.Uuid(), nullable=True),
         sa.Column('appointment_date', sa.DateTime(timezone=True), nullable=False),
         sa.Column('status', sa.String(length=32), nullable=False, server_default='SCHEDULED'),
         sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.ForeignKeyConstraint(['analysis_id'], ['analyses.id'], ondelete='SET NULL'),
         sa.ForeignKeyConstraint(['doctor_id'], ['doctors.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['patient_id'], ['patients.id'], ondelete='CASCADE'),
@@ -95,14 +94,14 @@ def upgrade() -> None:
     # 5. Create 'notifications' table
     op.create_table(
         'notifications',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, primary_key=True),
-        sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False, primary_key=True),
+        sa.Column('user_id', sa.Uuid(), nullable=False),
         sa.Column('title', sa.String(length=150), nullable=False),
         sa.Column('message', sa.Text(), nullable=False),
         sa.Column('type', sa.String(length=50), nullable=False),
-        sa.Column('is_read', sa.Boolean(), nullable=False, server_default=sa.text('false')),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('is_read', sa.Boolean(), nullable=False, server_default=sa.text('0')),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
@@ -112,15 +111,15 @@ def upgrade() -> None:
     # 6. Create 'consents' table
     op.create_table(
         'consents',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, primary_key=True),
-        sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False, primary_key=True),
+        sa.Column('user_id', sa.Uuid(), nullable=False),
         sa.Column('consent_type', sa.String(length=64), nullable=False),
         sa.Column('is_granted', sa.Boolean(), nullable=False),
         sa.Column('ip_address', sa.String(length=45), nullable=False),
         sa.Column('granted_at', sa.DateTime(timezone=True), nullable=False),
         sa.Column('revoked_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
@@ -129,15 +128,15 @@ def upgrade() -> None:
     # 7. Create 'refresh_tokens' table
     op.create_table(
         'refresh_tokens',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, primary_key=True),
-        sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False, primary_key=True),
+        sa.Column('user_id', sa.Uuid(), nullable=False),
         sa.Column('token_hash', sa.String(length=255), nullable=False),
         sa.Column('device_info', sa.String(length=255), nullable=True),
         sa.Column('ip_address', sa.String(length=45), nullable=True),
-        sa.Column('is_revoked', sa.Boolean(), nullable=False, server_default=sa.text('false')),
+        sa.Column('is_revoked', sa.Boolean(), nullable=False, server_default=sa.text('0')),
         sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )

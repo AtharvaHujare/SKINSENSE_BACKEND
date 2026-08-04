@@ -8,7 +8,6 @@ Create Date: 2026-08-01 00:00:00.000000
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '0001_initial_schema'
@@ -21,15 +20,15 @@ def upgrade() -> None:
     # 1. Create 'users' table
     op.create_table(
         'users',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, primary_key=True),
+        sa.Column('id', sa.Uuid(), nullable=False, primary_key=True),
         sa.Column('email', sa.String(length=255), nullable=False),
         sa.Column('password_hash', sa.String(length=255), nullable=False),
         sa.Column('role', sa.String(length=32), nullable=False, server_default='PATIENT'),
-        sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')),
-        sa.Column('is_verified', sa.Boolean(), nullable=False, server_default=sa.text('false')),
+        sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('1')),
+        sa.Column('is_verified', sa.Boolean(), nullable=False, server_default=sa.text('0')),
         sa.Column('last_login_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
@@ -38,16 +37,16 @@ def upgrade() -> None:
     # 2. Create 'patients' table
     op.create_table(
         'patients',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, primary_key=True),
-        sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False, primary_key=True),
+        sa.Column('user_id', sa.Uuid(), nullable=False),
         sa.Column('first_name', sa.String(length=100), nullable=False),
         sa.Column('last_name', sa.String(length=100), nullable=False),
         sa.Column('date_of_birth', sa.Date(), nullable=False),
         sa.Column('gender', sa.String(length=20), nullable=False),
         sa.Column('skin_type', sa.String(length=10), nullable=True),
-        sa.Column('medical_history', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('medical_history', sa.JSON(), server_default=sa.text("'{}'"), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
@@ -56,16 +55,16 @@ def upgrade() -> None:
     # 3. Create 'doctors' table
     op.create_table(
         'doctors',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, primary_key=True),
-        sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('id', sa.Uuid(), nullable=False, primary_key=True),
+        sa.Column('user_id', sa.Uuid(), nullable=False),
         sa.Column('first_name', sa.String(length=100), nullable=False),
         sa.Column('last_name', sa.String(length=100), nullable=False),
         sa.Column('license_number', sa.String(length=100), nullable=False),
         sa.Column('specialization', sa.String(length=150), server_default='Dermatology', nullable=False),
         sa.Column('hospital_affinity', sa.String(length=255), nullable=True),
-        sa.Column('is_approved', sa.Boolean(), nullable=False, server_default=sa.text('false')),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('is_approved', sa.Boolean(), nullable=False, server_default=sa.text('0')),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )

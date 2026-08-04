@@ -7,7 +7,7 @@ Tracks skin lesion image upload sessions, processing workflow states, and physic
 import uuid
 from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -27,14 +27,14 @@ class Analysis(Base, TimestampMixin):
     __tablename__ = "analyses"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         doc="Unique analysis session identifier"
     )
 
     patient_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("patients.id", ondelete="CASCADE"),
         index=True,
         nullable=False,
@@ -42,7 +42,7 @@ class Analysis(Base, TimestampMixin):
     )
 
     assigned_doctor_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("doctors.id", ondelete="SET NULL"),
         index=True,
         nullable=True,

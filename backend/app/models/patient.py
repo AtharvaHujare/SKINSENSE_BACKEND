@@ -8,7 +8,7 @@ import uuid
 from datetime import date
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Date, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Uuid, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -24,14 +24,14 @@ class Patient(Base, TimestampMixin):
     __tablename__ = "patients"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         doc="Unique patient identifier"
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         unique=True,
         index=True,
@@ -70,7 +70,7 @@ class Patient(Base, TimestampMixin):
     )
 
     medical_history: Mapped[dict] = mapped_column(
-        JSONB,
+        JSON,
         server_default="{}",
         nullable=False,
         doc="Structured JSON storage for dermatological and family history"

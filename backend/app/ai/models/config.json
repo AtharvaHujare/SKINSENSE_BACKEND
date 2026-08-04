@@ -1,0 +1,9 @@
+{
+  "image_size": 224,
+  "model_version": "v1.0.0",
+  "architecture": "EfficientNetB0",
+  "input_shape": [224, 224, 3],
+  "batch_size": 32,
+  "normalization": "rescale_255",
+  "num_classes": 7
+}

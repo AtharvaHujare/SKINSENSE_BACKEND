@@ -1,7 +1,7 @@
 """
 SkinSense AI - Database Engine & Connection Module.
 
-Configures the asynchronous SQLAlchemy 2.0 database engine, connection pool,
+Configures the asynchronous SQLAlchemy 2.0 SQLite database engine,
 session factory, and health verification utilities.
 """
 
@@ -15,37 +15,33 @@ from sqlalchemy.ext.asyncio import (
 )
 from app.config import settings
 
-# Initialize asynchronous SQLAlchemy 2.0 database engine
-# Uses postgresql+asyncpg protocol built dynamically in Settings property
+# Initialize asynchronous SQLAlchemy 2.0 SQLite database engine
 engine: AsyncEngine = create_async_engine(
     url=settings.DATABASE_URL,
     echo=settings.DEBUG,
     future=True,
-    pool_pre_ping=True,  # Test connection prior to usage to avoid stale handles
-    pool_size=settings.DB_POOL_SIZE,  # Maximum number of active pool connections
-    max_overflow=settings.DB_MAX_OVERFLOW,  # Temporary connections beyond pool_size
-    pool_timeout=settings.DB_POOL_TIMEOUT,  # Timeout seconds waiting for connection
+    connect_args={"check_same_thread": False},
 )
 
 # Configures the thread-safe asynchronous session factory
 AsyncSessionLocal: async_sessionmaker[AsyncSession] = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
-    expire_on_commit=False,  # Prevents attribute expiration after commit for async usage
-    autoflush=False,         # Prevents automatic flush prior to query execution
-    autocommit=False,        # Enforces explicit transaction commits
+    expire_on_commit=False,
+    autoflush=False,
+    autocommit=False,
 )
 
 
 async def verify_database_connection() -> bool:
     """
-    Verifies connectivity to the PostgreSQL database on application startup.
+    Verifies connectivity to the SQLite database on application startup.
     Executes a lightweight ping query ('SELECT 1') and logs the operational status.
     """
     try:
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
-        print("✅ Database Connected Successfully")
+        print("✅ SQLite Database Connected Successfully")
         return True
     except Exception as exc:
         print(f"❌ Database Connection Failed: {exc}", file=sys.stderr)

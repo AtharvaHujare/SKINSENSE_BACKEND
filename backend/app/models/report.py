@@ -7,7 +7,7 @@ Stores PDF diagnostic report metadata, physician review notes, and download secu
 import uuid
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Text, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -23,14 +23,14 @@ class Report(Base, TimestampMixin):
     __tablename__ = "reports"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         doc="Unique report identifier"
     )
 
     analysis_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("analyses.id", ondelete="CASCADE"),
         unique=True,
         index=True,

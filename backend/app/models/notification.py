@@ -7,7 +7,7 @@ Stores in-app and push notification alerts for patients and doctors.
 import uuid
 from typing import TYPE_CHECKING
 from sqlalchemy import String, Text, Boolean, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -23,14 +23,14 @@ class Notification(Base, TimestampMixin):
     __tablename__ = "notifications"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         doc="Unique notification identifier"
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         index=True,
         nullable=False,
